@@ -8,6 +8,7 @@ function SideTabList() {
   this._tabsShrinked = false;
   this.windowId = null;
   this.view = document.getElementById("tablist");
+  this._wrapperView = document.getElementById("tablist-wrapper");
   this._resizeCanvas = document.createElement("canvas");
   this._resizeCanvas.mozOpaque = true;
   this._resizeCanvasCtx = this._resizeCanvas.getContext("2d");
@@ -87,6 +88,7 @@ SideTabList.prototype = {
     this.setPos(tabId, moveInfo.fromIndex < moveInfo.toIndex ?
                        moveInfo.toIndex + 1: moveInfo.toIndex
     );
+    this.updatePinnedTabsPositions();
   },
   onBrowserTabUpdated(tabId, changeInfo, tab) {
     if (!this.checkWindow(tab)) {
@@ -356,6 +358,7 @@ SideTabList.prototype = {
       this._moreTabsView.removeAttribute("hasMoreTabs");
     }
     this.maybeShrinkTabs();
+    this.updatePinnedTabsPositions();
   },
   async populate(windowId) {
     if (windowId && this.windowId === null) {
@@ -371,6 +374,7 @@ SideTabList.prototype = {
     }
     this.view.appendChild(fragment);
     this.maybeShrinkTabs();
+    this.updatePinnedTabsPositions();
     this.updateTabThumbnail(this.active);
     this.scrollToActiveTab();
   },
@@ -410,7 +414,7 @@ SideTabList.prototype = {
     }
     if (this.tabsShrinked) {
       // Could we fit everything if we switched back to the "normal" mode?
-      const wrapperHeight = document.getElementById("tablist-wrapper").offsetHeight;
+      const wrapperHeight = this._wrapperView.offsetHeight;
       const estimatedTabHeight = 56; // Not very scientific, but it "mostly" works.
 
       // TODO: We are not accounting for the "More Tabs" element displayed when
@@ -418,6 +422,26 @@ SideTabList.prototype = {
       let visibleTabs = [...this.tabs.values()].filter(tab => tab.visible);
       if (visibleTabs.length * estimatedTabHeight <= wrapperHeight) {
         this.tabsShrinked = false;
+      }
+    }
+  },
+  updatePinnedTabsPositions() {
+    let orderedIds = [...SideTab.getAllTabsViews()].map(el => parseInt(SideTab.tabIdForView(el)));
+    let tabs = orderedIds.map(id => this.tabs.get(id)).filter(tab => tab.pinned);
+
+    if (this.tabsShrinked) {
+      const numTabs = tabs.length;
+      const tabHeight = tabs[0].view.offsetHeight;
+      let height = numTabs * tabHeight;
+      this._wrapperView.style.paddingBlockStart = `${height}px`;
+      for (let tab of tabs) {
+        tab.view.style.marginBlockStart = `-${height}px`;
+        height -= tabHeight;
+      }
+    } else {
+      this._wrapperView.style.paddingBlockStart = "";
+      for (let tab of tabs) {
+        tab.view.style.marginBlockStart = "";
       }
     }
   },
@@ -440,6 +464,7 @@ SideTabList.prototype = {
     this.setPos(tabInfo.id, tabInfo.index);
 
     this.maybeShrinkTabs();
+    this.updatePinnedTabsPositions();
     if (tabInfo.active) {
       this.scrollToActiveTab();
     }
@@ -493,6 +518,7 @@ SideTabList.prototype = {
     sidetab.view.remove();
     this.tabs.delete(tabId);
     this.maybeShrinkTabs();
+    this.updatePinnedTabsPositions();
   },
   getPos(tabId) {
     let sidetab = this.getTabById(tabId);
@@ -545,6 +571,7 @@ SideTabList.prototype = {
     if (sidetab) {
       sidetab.updatePinned(tab.pinned);
     }
+    this.updatePinnedTabsPositions();
   },
   setContext(tab, context) {
     let sidetab = this.getTab(tab);

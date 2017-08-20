@@ -414,6 +414,11 @@ img, .tab *:not(.clickable) {
     transform: translateX(8px);
 }
 
+#tablist.shrinked .tab.pinned {
+    position: fixed;
+    width: 100%;
+}
+
 .tab-pin {
     display: none;
 }

@@ -135,6 +135,11 @@ SideTab.prototype = {
   updatePinned(pinned) {
     this.pinned = pinned;
     toggleClass(this.view, "pinned", pinned);
+
+    if (!pinned) {
+      // Reset the "pinned position"
+      this.view.style.marginBlockStart = "";
+    }
   },
   updateContext(context) {
     if (!context) {
